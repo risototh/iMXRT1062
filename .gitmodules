@@ -43,3 +43,6 @@
 [submodule "grblHAL_Teensy4/src/embroidery"]
 	path = grblHAL_Teensy4/src/embroidery
 	url = https://github.com/grblHAL/Plugin_embroidery
+[submodule "grblHAL_Teensy4/src/mbio"]
+	path = grblHAL_Teensy4/src/mbio
+	url = https://github.com/risototh/grblHAL-modbus-io
