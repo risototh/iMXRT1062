@@ -1,6 +1,7 @@
 [submodule "grblHAL_Teensy4/src/grbl"]
 	path = grblHAL_Teensy4/src/grbl
-	url = https://github.com/grblHAL/core
+	url = https://github.com/risototh/grblHAL-core
+	branch = master
 [submodule "grblHAL_Teensy4/src/eeprom"]
 	path = grblHAL_Teensy4/src/eeprom
 	url = https://github.com/grblHAL/Plugin_EEPROM
