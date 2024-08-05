@@ -813,7 +813,7 @@ static void stepperEnable (axes_signals_t enable)
 static void stepperWakeUp (void)
 {
     // Enable stepper drivers.
-    stepperEnable((axes_signals_t){AXES_BITMASK});
+    hal.stepper.enable((axes_signals_t){AXES_BITMASK});
 
     PIT_LDVAL0 = hal.f_step_timer / 500; // ~2ms delay to allow drivers time to wake up.
     PIT_TFLG0 |= PIT_TFLG_TIF;
@@ -1059,11 +1059,11 @@ void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
 
 #ifdef A_AXIS
         if(pulse_output.a)
-            DIGITAL_OUT(stepA, step_outbits.a);
+            DIGITAL_OUT(dirA, dir_outbits.a);
 #endif
 #ifdef B_AXIS
         if(pulse_output.b)
-            DIGITAL_OUT(stepB, step_outbits.b);
+            DIGITAL_OUT(dirB, dir_outbits.b);
 #endif
 
         if(pulse_delay) {
@@ -1630,6 +1630,13 @@ static spindle_data_t *spindleGetData (spindle_data_request_t request)
         case SpindleData_RPM:
             if(!stopped)
                 spindle_data.rpm = spindle_encoder.rpm_factor / (float)pulse_length;
+            break;
+
+        case SpindleData_AtSpeed:
+            if(!stopped)
+                spindle_data.rpm = spindle_encoder.rpm_factor / (float)pulse_length;
+            spindle_data.state_programmed.at_speed = settings.spindle.at_speed_tolerance <= 0.0f || (spindle_data.rpm >= spindle_data.rpm_low_limit && spindle_data.rpm <= spindle_data.rpm_high_limit);
+            spindle_data.state_programmed.encoder_error = spindle_encoder.error_count > 0;
             break;
 
         case SpindleData_AngularPosition:;
@@ -2488,7 +2495,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240220";
+    hal.driver_version = "240404";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2640,8 +2647,11 @@ bool driver_init (void)
 #endif
     hal.limits_cap = get_limits_cap();
     hal.home_cap = get_home_cap();
+#ifdef COOLANT_FLOOD_PIN
+    hal.coolant_cap.flood = On;
+#endif
 #ifdef COOLANT_MIST_PIN
-    hal.driver_cap.mist_control = On;
+    hal.coolant_cap.mist = On;
 #endif
 #if SPINDLE_ENCODER_ENABLE
     hal.driver_cap.spindle_encoder = On;
@@ -2949,7 +2959,7 @@ static void gpio_isr (void)
                         break;
 #endif
 
-#if I2C_STROBE_ENABLE
+#if I2C_STROBE_ENABLE && !defined(AUX_DEVICES)
                     case PinGroup_Keypad:
                         if(i2c_strobe.callback)
                             i2c_strobe.callback(0, !(KeypadStrobe.reg->DR & KeypadStrobe.bit));
